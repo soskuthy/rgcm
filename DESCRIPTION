@@ -6,4 +6,5 @@ Date: 2015-02-03
 Author: Márton Sóskuthy
 Maintainer: Márton Sóskuthy <marton.soskuthy@york.ac.uk>
 Description: Performs Bayesian parameter estimation and prediction for the Generalised Context Model with categorical predictors
+Depends: doParallel, foreach, rjags
 License: GPL-2
