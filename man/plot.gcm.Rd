@@ -2,22 +2,18 @@
 \alias{plot.gcm}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Posterior distribution plots for GCM parameter estimates
+Trace and density plots for the GCM posterior samples
 }
 \description{
-%%  ~~ A concise (1-5 lines) description of what the function does. ~~
+This function is a wrapper around the \link[coda]{plot.mcmc} command from the \link[coda]{coda} package.
 }
 \usage{
 plot.gcm(object, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{object}{
-%%     ~~Describe \code{object} here~~
-}
-  \item{\dots}{
-%%     ~~Describe \code{\dots} here~~
-}
+  \item{object}{an object of class \code{gcm}.}
+  \item{\dots}{further parameters that can be passed to \link[coda]{plot.mcmc}. See the help page for \link[coda]{plot.mcmc}.}
 }
 \details{
 %%  ~~ If necessary, more details than the description above ~~
@@ -45,17 +41,8 @@ plot.gcm(object, ...)
 %% ~~objects to See Also as \code{\link{help}}, ~~~
 }
 \examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.
-
-## The function is currently defined as
-function (object, ...) 
-{
-    plot(object$posterior.samples, ...)
-  }
+model <- gcm(category~size + colour + shape + symmetry, 
+             data=rgcm.example, parallel=2, adaptSteps=1000)
+summary(model)
+plot(model)
 }
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory.
-\keyword{ ~kwd1 }
-\keyword{ ~kwd2 }% __ONLY ONE__ keyword per line

@@ -5,7 +5,7 @@
 Visual summary of GCM predictions 
 }
 \description{
-%%  ~~ A concise (1-5 lines) description of what the function does. ~~
+Creates a density plot of model accuracy / log-likelihood based on the output of \link{predict.gcm}.
 }
 \usage{
 plot.gcm.predictions(object)
@@ -13,7 +13,7 @@ plot.gcm.predictions(object)
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{object}{
-%%     ~~Describe \code{object} here~~
+an object of class \code{gcm.predictions}, created by \link{predict.gcm}.
 }
 }
 \details{
@@ -42,30 +42,20 @@ plot.gcm.predictions(object)
 %% ~~objects to See Also as \code{\link{help}}, ~~~
 }
 \examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.
+# generating posterior samples
 
-## The function is currently defined as
-function (object) 
-{
-    if (object$data.type == "response") {
-        accuracies <- summary(object)$accuracies
-        par(mfrow = c(1, 1))
-        plot(density(accuracies), type = "n", xlab = "Accuracy", 
-            ylab = "Density", main = "Distribution of accuracy values")
-        lines(density(accuracies), lw = 2)
-    }
-    else if (object$data.type == "probabilities") {
-        likelihoods <- summary(object)$likelihoods
-        par(mfrow = c(1, 1))
-        plot(density(likelihoods), type = "n", xlab = "Log Likelihood", 
-            ylab = "Density", main = "Distribution of Log Likelihoods")
-        lines(density(likelihoods), lw = 2)
-    }
-  }
+model <- gcm(category~size + colour + shape + symmetry, 
+             data=rgcm.example, adaptSteps=1000)
+
+# model predictions based on 1000 samples from the posterior 
+# distribution
+
+preds <- predict(model)
+plot(preds)
+
+# categorisation probabilities & model likelihoods based 
+# on 1000 samples from the posterior distribution
+
+preds <- predict(model, type="probabilities")
+plot(preds)
 }
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory.
-\keyword{ ~kwd1 }
-\keyword{ ~kwd2 }% __ONLY ONE__ keyword per line
