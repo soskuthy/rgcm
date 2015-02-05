@@ -8,7 +8,9 @@ Bayesian parameter estimation for the Generalised Context Model
 Performs Bayesian parameter estimation for the Generalised Context Model.
 }
 \usage{
-gcm(formula, data, iterations = 10000, priors = NULL, weights = NULL, parallel = FALSE, adaptSteps = 500, burnInSteps = 500, nChains = 4)
+gcm(formula, data, iterations = 10000, priors = NULL, 
+    weights = NULL, parallel = FALSE, adaptSteps = 500, 
+    burnInSteps = 500, nChains = 4)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -22,7 +24,7 @@ a data frame containing the variables in the model.
 an optional integer specifying the overall number of MCMC steps. Each chain runs for \code{iterations / nChains} steps.
 }
   \item{priors}{
-an optional list specifying the prior distributions for the model parameters.
+an optional list specifying the prior distributions for the model parameters. See \link{default.priors} for more detail.
 }
   \item{weights}{
 an optional vector containing the frequencies of all items in the data set. If it is set to \code{NULL}, a vector of \code{1}'s is used.
@@ -66,8 +68,33 @@ an optional integer specifying the number of chains to be run in parallel.
 %% ~~objects to See Also as \code{\link{help}}, ~~~
 }
 \examples{
-## examples coming soon!
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory.
-%\keyword{ ~kwd1 }
-%\keyword{ ~kwd2 }% __ONLY ONE__ keyword per line
+# load example data set
+data("rgcm.example")
+
+# run gcm in parallel mode on 2 cores
+
+model <- gcm(category~size + colour + shape + symmetry, 
+             data=rgcm.example, parallel=2, adaptSteps=1000)
+summary(model)
+plot(model)
+
+# run gcm with frequency data included on single processor core
+
+model.2 <- gcm(category~size + colour + shape + symmetry, 
+               data=rgcm.example, weights=rgcm.example$freq, 
+               adaptSteps=1000)
+summary(model.2)
+plot(model.2)
+
+# run gcm with frequency data included and custom priors
+
+new.priors <- default.priors
+new.priors$m <- quote(dgamma(0.5, 1))
+new.priors$b <- quote(0.5)
+model.3 <- gcm(category~size + colour + shape + symmetry, 
+               data=rgcm.example, weights=rgcm.example$freq, 
+               priors=new.priors, adaptSteps=1000)
+summary(model.3)
+plot(model.3)
+
+}

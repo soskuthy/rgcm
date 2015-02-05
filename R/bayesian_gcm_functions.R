@@ -102,10 +102,10 @@ multi.dim.priors <- c("w", "b")
 default.priors <- list(c=quote(sqrt(dgamma(0.001, 0.001))),
                        w=quote(ddirch(1)),
                        b=quote(ddirch(1)),
-                       alpha=quote(dgamma(3,3)),
+                       alpha=quote(1),
                        g=quote(1),
                        r=quote(1),
-                       m=quote(dgamma(0.5,1)))
+                       m=quote(1))
 
 recursive.replace.dist <- function (obj, replacement="") {
   obj.temp <- as.list(obj)
@@ -167,7 +167,7 @@ prior.list.to.string <- function (prior.list, single=F) {
 
 jinits <- function( ) {
   return(list(.RNG.name = "lecuyer::RngStream", 
-              .RNG.seed = runif(1,1,1e+06) ) )
+              .RNG.seed = round(runif(1,1,1e+06)) ) )
 }
 
 mcmc.combine <- function( ... ) {

@@ -16,6 +16,7 @@ An example data set with two numeric and two categorical predictor variables and
     \item{\code{shape}}{a categorical predictor variable with levels \code{a} \code{b} \code{c}}
     \item{\code{symmetry}}{a categorical predictor variable with levels \code{no} \code{yes}}
     \item{\code{category}}{the outcome variable, with levels \code{X} \code{Y}}
+    \item{\code{freq}}{the token frequency of a given item (an integer)}
   }
 }
 \details{
