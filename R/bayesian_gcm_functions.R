@@ -3,15 +3,54 @@ library( doParallel )
 library( foreach )
 library( random )
 
-#registerDoParallel(cl) 
-
-
-# to be removed later:
-#setwd('~/google/cicamica/gcm/bayesian_gcm_R_package')
-
-#bayesian.gcm.path <- 'bayesian_gcm_model.txt'
 
 bayesian.model.text <- "
+model {
+  # outcome probabilities
+
+  for (i in 1:n) {
+    outcome[i] ~ dcat(probcat[i,1:ncat])
+  }
+
+  for (i in 1:n) {
+    for (k in 1:n) {
+      identity_matrix[i,k] <- ((sum(predictors[i,]==predictors[k,]) / npredictors) == 1)*i
+    }
+    for (l in 1:ncat) {
+      outcome_matrix[i,l] <- (l==outcome_temp[i])*outcome_temp[i]
+    }
+  }
+
+  for (i in 1:n) {  
+    for (j in 1:ncat) {
+
+# defining category probabilites for specific stimuli
+# g: determinism
+
+      probcat[i,j] <- b[j] * pow(s_overall[i,j],g) / inprod(b, pow(s_overall[i,], g))
+      s_overall[i,j] <- inprod(pow(freq, m)*(outcome_temp==outcome_matrix[,j])*(1 - (indices==identity_matrix[i,])),pow(2.718282,-c*pow(pow(pow(diff_matrix[i,1:n,1:npredictors],r) %*% w[], 1/r), alpha)))
+    }
+  }
+
+# priors
+  c <- sqrt(csquared)
+  csquared ~ dgamma(0.001,0.001)
+  for (i in 1:npredictors) {
+    dirichlet_alphas_w[i] <- 1
+  }
+  for (i in 1:ncat) {
+    dirichlet_alphas_b[i] <- 1
+  }
+  w[1:npredictors] ~ ddirch(dirichlet_alphas_w[1:npredictors])
+  b[1:ncat] ~ ddirch(dirichlet_alphas_b[1:ncat])
+  alpha <- 1
+  g <- 1
+  r <- 1
+  m <- 1
+}
+"
+
+bayesian.model.text.single.pred <- "
 model {
   # outcome probabilities
 
@@ -36,28 +75,26 @@ model {
 # g: determinism
 
       probcat[i,j] <- b[j] * pow(s_overall[i,j],g) / inprod(b, pow(s_overall[i,], g))
-      s_overall[i,j] <- inprod(pow(freq, m)*(outcome_temp==outcome_matrix[,j])*(1 - (indices==identity_matrix[i,])),pow(2.718282,-c*pow(pow(pow(1-(target_matrix[i,1:n,1:npredictors]==predictors[1:n,1:npredictors]),r) %*% w[], 1/r), alpha)))
+      s_overall[i,j] <- inprod(pow(freq, m)*(outcome_temp==outcome_matrix[,j])*(1 - (indices==identity_matrix[i,])),pow(2.718282,-c*pow(pow(pow(diff_matrix[i,1:n,1:npredictors],r) * w, 1/r), alpha)))
     }
   }
 
 # priors
   c <- sqrt(csquared)
   csquared ~ dgamma(0.001,0.001)
-  for (i in 1:npredictors) {
-    dirichlet_alphas_1[i] <- 1
-  }
   for (i in 1:ncat) {
-    dirichlet_alphas_2[i] <- 1
+    dirichlet_alphas_b[i] <- 1
   }
-  w[1:npredictors] ~ ddirch(dirichlet_alphas_1[1:npredictors])
-  b[1:ncat] ~ ddirch(dirichlet_alphas_2[1:ncat])
-  alpha ~ dgamma(3,3)
+  w <- 1
+  b[1:ncat] ~ ddirch(dirichlet_alphas_b[1:ncat])
+  alpha <- 1
   g <- 1
   r <- 1
-  m ~ dgamma(0.5,1)
+  m <- 1
 }
 
 "
+
 
 rjags.distributions <- c("dbeta", "dchisqr", "ddexp", "dexp", "df", "dgamma", "dgen.gamma", "dlogis", "dlnorm", "dnchisqr", "dnorm", "dpar", "dt", "dunif", "dweib", "dbetabin", "dbern", "dbin", "dcat", "dhyper", "dnegbin", "dpois", "ddirch", "dmnorm", "dwish", "dmt", "dmulti")
 one.dim.priors <- c("c", "alpha", "g", "r", "m")
@@ -97,14 +134,14 @@ recursive.replace.dist <- function (obj, replacement="") {
   }
 }
 
-prior.list.to.string <- function (prior.list) {
+prior.list.to.string <- function (prior.list, single=F) {
   output <- list()
   for (p in 1:length(prior.list)) {
     if (!(names(prior.list)[p] %in% one.dim.priors) & !(names(prior.list)[p] %in% multi.dim.priors)) {
       stop(paste(names(prior.list)[p], "is not a GCM parameter."))
     }
     prior.def <- recursive.replace.dist(prior.list[[p]], replacement=paste(names(prior.list)[p], ".temp", sep=""))
-    if (names(prior.list)[p] %in% one.dim.priors) {
+    if ((names(prior.list)[p] %in% one.dim.priors) | (names(prior.list)[p]=="w" & single==T)) {
       if (is.null(prior.def[[2]])) {
         output[[p]] <- paste(names(prior.list)[p], " <- ", deparse(prior.def[[1]]), sep="")
       } else {
@@ -141,7 +178,7 @@ mcmc.combine <- function( ... ) {
 
 run.model.parallel <- function (model.string, formula, data, weights, adaptSteps=500, burnInSteps=500, nChains=4, iterations=10000, nCores=1) {
   outcome <- data[,1]
-  predictors <- data[,-1]
+  predictors <- data.frame(data[,-1])
   datalist <- create.datalist(predictors, outcome, weights)
   parameters = c( "b" , "w" , "c", "m", "alpha", "g", "r")
   nPerChain = ceiling( iterations / nChains )
@@ -233,7 +270,7 @@ run.model.parallel.custom <- function (model.string, datalist, parameters, adapt
 
 run.model.single <- function (model.string, formula, data, weights, adaptSteps=500, burnInSteps=500, nChains=4, iterations=10000) {
   outcome <- data[,1]
-  predictors <- data[,-1]
+  predictors <- data.frame(data[,-1])
   datalist <- create.datalist(predictors, outcome, weights)
   parameters <- c( "b" , "w" , "c", "m", "alpha", "g", "r")
   nPerChain <- ceiling( iterations / nChains )
@@ -260,6 +297,28 @@ run.model.single <- function (model.string, formula, data, weights, adaptSteps=5
   return(output)
 }
 
+calculate.diffs <- function (x,n) {
+  if (class(x)=="factor" | class(x)=="character") {
+    return(as.numeric(x!=n))
+  } 
+  if (class(x)=="numeric") {
+    return(abs(x-n))
+  }
+}
+
+create.diff.matrix <- function (preds) {
+  matrices <- list()
+  for (i in 1:nrow(preds)) {
+    row <- preds[i,]
+    m <- list()
+    for (j in 1:ncol(preds)) {
+      m[[j]] <- calculate.diffs(preds[,j], row[[j]])
+    }
+    matrices[[i]] <- do.call(cbind, m)
+  }
+  return(aperm(simplify2array(matrices),c(3,1,2)))
+}
+
 create.datalist <- function (predictors, outcome, weights) {
   if (is.null(weights)) {
     freq <- rep(1, length(outcome))
@@ -268,6 +327,7 @@ create.datalist <- function (predictors, outcome, weights) {
   }
   datalist = list(
     predictors = as.matrix(apply(predictors, 2, FUN=function (x) {as.numeric(factor(x))})),
+    diff_matrix = create.diff.matrix(predictors),
     outcome = as.numeric(factor(outcome)),
     outcome_temp = as.numeric(factor(outcome)),
     npredictors = ncol(predictors),
@@ -281,12 +341,20 @@ create.datalist <- function (predictors, outcome, weights) {
 
 gcm <- function (formula, data, iterations=10000, priors=NULL, weights=NULL, parallel=FALSE,
                           adaptSteps=500, burnInSteps=500, nChains=4) {
-  model.string.lines <- bayesian.model.text #readLines("bayesian_GCM_model.txt")
+  if (length(all.vars(formula))==2) {
+    model.string.lines <- strsplit(bayesian.model.text.single.pred, "\n")[[1]]
+    single <- T
+  } else if (length(all.vars(formula)) > 2) {
+    model.string.lines <- strsplit(bayesian.model.text, "\n")[[1]] #readLines("bayesian_GCM_model.txt")
+    single <- F
+  } else {
+    stop("Formula should be of the form X ~ A + B + ..., where at least X and A have to be specified.")
+  }
   if (!is.null(priors)) {
     if (is.character(priors)) {
       model.string <- paste(paste(model.string.lines[1:which(model.string.lines=="# priors")], collapse="\n"), "\n", priors, "\n}", sep="")
     } else if (is.list(priors)) {
-      model.string <- paste(paste(model.string.lines[1:which(model.string.lines=="# priors")], collapse="\n"), "\n", paste(prior.list.to.string(priors), collapse="\n"), "\n}", sep="")
+      model.string <- paste(paste(model.string.lines[1:which(model.string.lines=="# priors")], collapse="\n"), "\n", paste(prior.list.to.string(priors, single=single), collapse="\n"), "\n}", sep="")
     } else {
       stop(paste("class '", class(priors), "' is not allowed as a prior.", sep=""))
     }
@@ -303,6 +371,11 @@ gcm <- function (formula, data, iterations=10000, priors=NULL, weights=NULL, par
     )
   }
 }
+
+#gcm.simple <- function (formula, parameters) {
+#  return(formula)
+#}
+
 
 summary.gcm <- function (object) {
   cat("GCM formula:\n")
@@ -385,11 +458,12 @@ predict.gcm <- function (object, user.samples=NULL, newdata=NULL, weights=NULL, 
       predicted.outcomes <- matrix(rep(0, n*ncat), nrow=n)
       colnames(predicted.outcomes) <- levels(factor(outcome))
     }
+    diff.matrix <- create.diff.matrix(datalist$predictors)
     for (i in 1:n) {
       s_overall <- rep(0, ncat)
       for (j in 1:ncat) {
         observation.weights <-(freq**step["m"])*(datalist$outcome==j)*(preds.string!=preds.string[i])
-        observation.similarities <- exp(-step["c"]*(( (((rep(1,n)%*%t(datalist$predictors[i,]))!=datalist$predictors)**step["r"]) %*% step[paste("w[", 1:ncol(datalist$predictors), "]", sep="")])**(1/step["r"]))**step["alpha"])
+        observation.similarities <- exp(-step["c"]*(( (diff.matrix[i,,]**step["r"]) %*% step[paste("w[", 1:ncol(datalist$predictors), "]", sep="")])**(1/step["r"]))**step["alpha"])
         s_overall[j] <- sum(observation.weights*observation.similarities)
       }
       probs <- step[paste("b[", 1:ncat, "]", sep="")] * (s_overall**step["g"]) / (sum(step[paste("b[", 1:ncat, "]", sep="")] * (s_overall**step["g"])))
