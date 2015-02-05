@@ -27,7 +27,7 @@ the similarity metric}
 }  
    
 \details{
-The names of the prior distributions are taken from \link[pkg]{rjags}. Priors specified as constants are not estimated from the data. Priors can be transformed in various ways. Note that both constants and priors have to be quoted using \code{quote()} when they are specified. Here is a list of suggested priors:
+The names of the prior distributions are taken from \link[rjags]{rjags}. Priors specified as constants are not estimated from the data. Priors can be transformed in various ways. Note that both constants and priors have to be quoted using \code{quote()} when they are specified. Here is a list of suggested priors:
 \itemize{
   \item \code{c}: \code{quote(sqrt(dgamma(0.001, 0.001)))} (square root of gamma distribution, following Vanpaemel 2009)
   \item \code{w}: \itemize{ \item \code{quote(ddirch(1))} (dirichlet distribution)
