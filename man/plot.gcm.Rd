@@ -5,7 +5,7 @@
 Trace and density plots for the GCM posterior samples
 }
 \description{
-This function is a wrapper around the \link[coda]{plot.mcmc} command from the \link[coda]{coda} package.
+This function is a wrapper around the \link[coda]{plot.mcmc} command from the \link{coda} package.
 }
 \usage{
 plot.gcm(object, ...)
