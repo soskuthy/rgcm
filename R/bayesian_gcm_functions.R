@@ -3,8 +3,6 @@ library( doParallel )
 library( foreach )
 library( random )
 
-data("rgcm.example")
-
 bayesian.model.text <- "
 model {
   # outcome probabilities
